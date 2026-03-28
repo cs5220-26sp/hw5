@@ -40,7 +40,6 @@ void abs_transform(float* d_in, size_t num_items)
 {
   AbsOp abs_op;
   cub::DeviceTransform::Transform(d_in, d_in, num_items, abs_op);
-  std::cout<<num_items<<std::endl;
 }
 
 } //utils

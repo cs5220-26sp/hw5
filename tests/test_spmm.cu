@@ -30,7 +30,7 @@ using namespace spmm;
  * |deltaY[i,j]| <= u * n * h_Y_abs[i,j]
  */
 void spmm_ewise_comp(float * h_Y_computed, float * h_Y_correct, 
-                     float * h_Y_abs,
+                     float * h_Y_abs, uint32_t * nnz_per_row,
                      const size_t m, const size_t n, const size_t k)
 {
     for (size_t i=0; i<m; i++)
@@ -38,8 +38,12 @@ void spmm_ewise_comp(float * h_Y_computed, float * h_Y_correct,
         for (size_t j=0; j<k; j++)
         {
             size_t idx = j + i * k;
-            float bound = FLT_EPSILON * n * h_Y_abs[idx];
-            assert( fabs(h_Y_computed[idx] - h_Y_correct[idx]) <= bound );
+            float bound = FLT_EPSILON * 2 * nnz_per_row[i] * h_Y_abs[idx];
+            if ( fabs(h_Y_computed[idx] - h_Y_correct[idx]) > bound )
+            {
+                std::cerr<<RED<<"Expected "<<h_Y_correct[idx]<<", got "<<h_Y_computed[idx]<<RESET<<std::endl;
+                exit(1);
+            }
         }
     }
 }
@@ -111,7 +115,15 @@ void check_correctness(csr_t & csr_A,
     CUDA_CHECK(cudaMemcpy(h_abs, d_Y, sizeof(float)*m*k, cudaMemcpyDeviceToHost));
     CUDA_CHECK(cudaMemset(d_Y, 0, sizeof(float)*m*k));
 
-    spmm_ewise_comp(h_computed, h_correct, h_abs, m, n, k);
+    uint32_t * nnz_per_row = new uint32_t[m];
+    uint32_t * h_rowptrs = new uint32_t[m+1];
+    CUDA_CHECK(cudaMemcpy(h_rowptrs, csr_A.get_rowptrs(), sizeof(uint32_t) * (m + 1), cudaMemcpyDeviceToHost));
+    for (int i=0; i<m; i++)
+    {
+        nnz_per_row[i] = h_rowptrs[i+1] - h_rowptrs[i];
+    }
+
+    spmm_ewise_comp(h_computed, h_correct, h_abs, nnz_per_row, m, n, k);
 
     std::cout<<GREEN<<"Correctness for SpMM passed!"<<RESET<<std::endl;
 
@@ -122,6 +134,8 @@ void check_correctness(csr_t & csr_A,
     delete[] h_correct;
     delete[] h_computed;
     delete[] h_abs;
+    delete[] nnz_per_row;
+    delete[] h_rowptrs;
 }
 
 
@@ -139,6 +153,9 @@ int main(int argc, char ** argv)
 
     std::string matname = std::string(argv[1]);
     size_t k = std::atol(argv[2]);
+
+
+    std::cout<<BLUE<<"===== Running SpMM ("<<matname<<", k = "<<k<<") ====="<<RESET<<std::endl;
 
 
     /* IO */
@@ -165,12 +182,12 @@ int main(int argc, char ** argv)
 
 
     /* Correctness check */
-    std::cout<<BLUE<<"Running correctness check"<<matname<<RESET<<std::endl;
+    std::cout<<BLUE<<"Running correctness check"<<RESET<<std::endl;
     check_correctness(csr_A, d_X, d_Y, A, X, Y, k);
     
 
     /* Benchmark cuSPARSE */
-    std::cout<<BLUE<<"Running cusparse benchmark"<<matname<<RESET<<std::endl;
+    std::cout<<BLUE<<"Running cusparse benchmark"<<RESET<<std::endl;
     const float alpha = 1.0;
     const float beta = 0.0;
     const char * label_cusparse = "SpMM_cusparse";
@@ -209,7 +226,7 @@ int main(int argc, char ** argv)
 
 
     /* Benchmark student implementation */
-    std::cout<<BLUE<<"Running student benchmark"<<matname<<RESET<<std::endl;
+    std::cout<<BLUE<<"Running student benchmark"<<RESET<<std::endl;
     const char * label_spmm_student = "SpMM_student";
 
     start_timer(label_spmm_student);

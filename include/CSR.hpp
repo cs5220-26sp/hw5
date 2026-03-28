@@ -101,6 +101,7 @@ private:
         std::string line;
         bool first = true;
         bool symmetric = false;
+        bool pattern = false;
         while (std::getline(infile, line))
         {
 
@@ -111,6 +112,11 @@ private:
                 {
                     symmetric = true;
                     std::cout<<"Matrix is symmetric"<<std::endl;
+                }
+                if (line.find("pattern") != std::string::npos)
+                {
+                    pattern = true;
+                    std::cout<<"Matrix is pattern"<<std::endl;
                 }
                 first = false;
             }
@@ -125,10 +131,6 @@ private:
         }
 
 
-        std::cout << "ROWS: " << this->m << std::endl 
-                  << "COLS: " << this->n << std::endl 
-                  << "NNZ: " << this->nnz << std::endl; 
-
 
         std::vector<COOTuple> tuples;
 
@@ -138,16 +140,31 @@ private:
             
             I rid, cid;
             D val;
-            iss>>rid>>cid>>val;
+            if (pattern)
+            {
+                iss>>rid>>cid;
+                val = D(1.0);
+            }
+            else
+            {
+                iss>>rid>>cid>>val;
+            }
 
             COOTuple t {rid-1, cid-1, val};
             tuples.push_back(t);
 
-            if (symmetric && rid==cid)
+            if (symmetric && rid!=cid)
             {
                 tuples.push_back({cid-1, rid-1, val});
             }
         }
+
+        this->nnz = tuples.size();
+
+        std::cout << "ROWS: " << this->m << std::endl 
+                  << "COLS: " << this->n << std::endl 
+                  << "NNZ: " << this->nnz << std::endl; 
+
 
         auto row_comp = [](COOTuple& t1, COOTuple& t2)
         {

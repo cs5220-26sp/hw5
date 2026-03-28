@@ -157,7 +157,7 @@ void print_time(const char * label)
 void print_gflops(const char * label)
 {
     std::string label_str(label);
-    std::cout<<BRIGHT_BLUE<<"["<<label_str<<"]: "<<gflops[label_str]<<" gflops/s"<<RESET<<std::endl;
+    std::cout<<BRIGHT_GREEN<<"["<<label_str<<"]: "<<gflops[label_str]<<" gflops/s"<<RESET<<std::endl;
 }
 
 
