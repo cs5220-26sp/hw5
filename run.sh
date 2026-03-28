@@ -1,6 +1,6 @@
 #!/usr/bin/bash
 #SBATCH -A m4341_g
-#SBATCH -t 00:10:00
+#SBATCH -t 00:20:00
 #SBATCH -C "gpu&hbm40g"
 #SBATCH -N 1
 #SBATCH -q regular
@@ -12,6 +12,8 @@ run_matrix() {
     echo =====================
     echo
 }
+
+module load cudatoolkit/13.0
 
 run_matrix nlpkkt120 64
 run_matrix nlpkkt120 256
