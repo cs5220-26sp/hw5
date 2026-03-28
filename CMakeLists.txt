@@ -5,10 +5,19 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED YES)
 
-add_compile_options(-w -O3 --use_fast_math)
+add_compile_options(-w -O3)
 set(CMAKE_CUDA_ARCHITECTURES "80")
 
 find_package(CUDAToolkit)
+
+set(GROUP_NO 0 CACHE STRING "Your group number")
+if (NOT ${GROUP_NO} STREQUAL xxx)
+    set(CPACK_GENERATOR TGZ)
+    set(CPACK_PACKAGE_FILE_NAME "CS5220Group${GROUP_NO}_hw5")
+    install(FILES spmm.cuh DESTINATION .)
+    install(FILES ${CPACK_PACKAGE_FILE_NAME}.pdf DESTINATION .)
+    include(CPack)
+endif ()
 
 add_executable(test_spmm tests/test_spmm.cu)
 
